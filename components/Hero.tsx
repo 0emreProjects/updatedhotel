@@ -103,21 +103,36 @@ export default function Hero() {
             const img = new window.Image()
             img.src = videoSources.rooms
           } else if (theme === 'events' && videoSources.events) {
+            // Preload the actual .MOV file
             const video = document.createElement('video')
-            video.src = videoSources.events.replace(/\.MOV$/i, '.mp4')
+            video.src = videoSources.events
             video.preload = 'auto'
             video.muted = true
           } else if (theme === 'bar' && videoSources.bar) {
+            // Preload the actual .MOV file
             const video = document.createElement('video')
-            video.src = videoSources.bar.replace(/\.MOV$/i, '.mp4')
+            video.src = videoSources.bar
             video.preload = 'auto'
             video.muted = true
           }
         }
         setActiveTheme(theme)
+        
+        // Force video to play when theme changes (after a short delay to ensure video element is ready)
+        if (!isMobile && (theme === 'events' || theme === 'bar')) {
+          setTimeout(() => {
+            const videos = document.querySelectorAll(`video[data-theme="${theme}"]`)
+            videos.forEach((video) => {
+              const htmlVideo = video as HTMLVideoElement
+              if (htmlVideo.readyState >= 2) {
+                htmlVideo.play().catch(() => {})
+              }
+            })
+          }, 200)
+        }
       })
     }
-  }, [activeTheme, isMobile])
+  }, [activeTheme, isMobile, videoSources])
 
   const navigateToSection = (theme: HeroTheme) => {
     const sectionMap: Record<HeroTheme, string> = {
@@ -270,19 +285,24 @@ export default function Hero() {
                   )
                 }
 
-                // Build source list based on detected support. If detection hasn't run
-                // yet (videoSupport === null) include both sources so the browser can decide.
+                // Build source list - prioritize .MOV (what exists), then try .mp4 as fallback
                 const sources: { src: string; type: string }[] = []
-                if (videoSupport === null || videoSupport.mp4) {
-                  sources.push({ src: src.replace(/\.MOV$/i, '.mp4'), type: 'video/mp4' })
-                }
-                if (videoSupport === null || videoSupport.quicktime) {
-                  sources.push({ src, type: 'video/quicktime' })
+                
+                // First try .MOV file (this is what actually exists in the directory)
+                // Most modern browsers support .MOV files
+                sources.push({ src, type: 'video/quicktime' })
+                
+                // Also try .mp4 version as fallback (in case it gets converted later)
+                // But prioritize .MOV since that's what exists
+                const mp4Src = src.replace(/\.MOV$/i, '.mp4')
+                if (mp4Src !== src) {
+                  sources.push({ src: mp4Src, type: 'video/mp4' })
                 }
 
                 return (
                   <motion.video
                     key={theme}
+                    data-theme={theme}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: activeTheme === theme ? 1 : 0 }}
                     transition={{ 
@@ -302,13 +322,35 @@ export default function Hero() {
                       transform: 'translateZ(0)',
                       backfaceVisibility: 'hidden'
                     }}
+                    onCanPlay={(e) => {
+                      // Ensure video plays when it can play
+                      const video = e.target as HTMLVideoElement
+                      if (activeTheme === theme) {
+                        video.play().catch(() => {})
+                      }
+                    }}
+                    onLoadedData={(e) => {
+                      // Ensure video plays when loaded
+                      const video = e.target as HTMLVideoElement
+                      if (activeTheme === theme) {
+                        video.play().catch(() => {})
+                      }
+                    }}
+                    onPlay={() => {
+                      // Video started playing - ensure it's visible
+                    }}
                     onError={(e) => {
+                      // Fallback to image if video fails to load
                       const target = e.target as HTMLVideoElement
-                      target.style.display = 'none'
-                      const img = document.createElement('img')
-                      img.src = theme === 'events' ? '/photos/events/IMG_6482.JPG' : theme === 'bar' ? '/photos/bar/IMG_4988.JPG' : imageSources[theme]
-                      img.className = 'absolute inset-0 w-full h-full object-cover'
-                      target.parentElement?.appendChild(img)
+                      const parent = target.parentElement
+                      if (parent && !parent.querySelector('img.fallback-image')) {
+                        target.style.display = 'none'
+                        const img = document.createElement('img')
+                        img.src = theme === 'events' ? '/photos/events/IMG_6482.JPG' : theme === 'bar' ? '/photos/bar/IMG_4988.JPG' : imageSources[theme]
+                        img.className = 'absolute inset-0 w-full h-full object-cover fallback-image'
+                        img.style.opacity = activeTheme === theme ? '1' : '0'
+                        parent.appendChild(img)
+                      }
                     }}
                   >
                     {sources.map((s, i) => (
