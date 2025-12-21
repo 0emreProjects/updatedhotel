@@ -194,7 +194,7 @@ export default function Hero() {
                 className="object-cover object-center"
                 priority
                 loading="eager"
-                quality={75}
+                quality={60}
                 sizes="100vw"
               />
             ) : (

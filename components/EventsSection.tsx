@@ -122,21 +122,36 @@ export default function EventsSection() {
     } catch (e) {}
   }, [])
 
+  const [isMobile, setIsMobile] = useState(false)
+  
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
   return (
     <section id="events" className="py-20 relative">
-      {/* Background with tint */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/80 to-white/85 z-10 backdrop-blur-sm" />
-        <Image
-          src="/photos/hotel/hotel3.JPG"
-          alt="Events"
-          fill
-          className="object-cover object-center"
-          sizes="100vw"
-          priority
-          quality={typeof window !== 'undefined' && window.innerWidth < 768 ? 75 : 92}
-        />
-      </div>
+      {/* Background with tint - REMOVED ON MOBILE for performance */}
+      {!isMobile && (
+        <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/80 to-white/85 z-10 backdrop-blur-sm" />
+          <Image
+            src="/photos/hotel/hotel3.JPG"
+            alt="Events"
+            fill
+            className="object-cover object-center"
+            sizes="100vw"
+            loading="lazy"
+            quality={92}
+          />
+        </div>
+      )}
+      {isMobile && (
+        <div className="absolute inset-0 z-0 bg-gradient-to-b from-gray-50 to-white" />
+      )}
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
@@ -165,7 +180,7 @@ export default function EventsSection() {
                 src={eventImages[currentImageIndex]}
                 alt="Event"
                 className="w-full h-full"
-                transitionDuration={typeof window !== 'undefined' && window.innerWidth < 768 ? 80 : 150}
+                transitionDuration={typeof window !== 'undefined' && window.innerWidth < 768 ? 50 : 150}
                 loading={typeof window !== 'undefined' && window.innerWidth < 768 ? 'lazy' : 'eager'}
                 decoding="async"
               />

@@ -343,7 +343,7 @@ function RoomCard({ room, index, onOpenModal }: { room: Room; index: number; onO
             src={room.images[currentImageIndex]}
             alt={room.title}
             className="w-full h-full"
-            transitionDuration={typeof window !== 'undefined' && window.innerWidth < 768 ? 80 : 150}
+            transitionDuration={typeof window !== 'undefined' && window.innerWidth < 768 ? 50 : 150}
             loading={typeof window !== 'undefined' && window.innerWidth < 768 ? 'lazy' : 'eager'}
             decoding="async"
           />
@@ -461,11 +461,23 @@ export default function RoomGallery() {
     setTimeout(() => setSelectedRoom(null), 300)
   }
 
+  const [isMobile, setIsMobile] = useState(false)
+  const [showAllRooms, setShowAllRooms] = useState(false)
+  
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
   return (
     <>
       <section id="rooms" className="py-20 relative">
-        {/* Background with tint */}
-        <div className="absolute inset-0 z-0">
+        {/* Background with tint - REMOVED ON MOBILE for performance */}
+        {!isMobile && (
+          <div className="absolute inset-0 z-0">
             <div className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/80 to-white/85 z-10 backdrop-blur-sm" />
             <Image
               src="/photos/hotel/hotel5.JPG"
@@ -474,11 +486,14 @@ export default function RoomGallery() {
               className="object-cover object-center"
               sizes="100vw"
               decoding="async"
-              loading="eager"
-              priority
+              loading="lazy"
               quality={92}
             />
-        </div>
+          </div>
+        )}
+        {isMobile && (
+          <div className="absolute inset-0 z-0 bg-gradient-to-b from-gray-50 to-white" />
+        )}
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
@@ -495,10 +510,20 @@ export default function RoomGallery() {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {rooms.map((room, index) => (
+            {(isMobile && !showAllRooms ? rooms.slice(0, 4) : rooms).map((room, index) => (
               <RoomCard key={room.id} room={room} index={index} onOpenModal={handleOpenModal} />
             ))}
           </div>
+          {isMobile && !showAllRooms && (
+            <div className="text-center mt-8">
+              <button
+                onClick={() => setShowAllRooms(true)}
+                className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+              >
+                View All {rooms.length} Rooms
+              </button>
+            </div>
+          )}
         </div>
       </section>
       <RoomModal room={selectedRoom} isOpen={isModalOpen} onClose={handleCloseModal} />

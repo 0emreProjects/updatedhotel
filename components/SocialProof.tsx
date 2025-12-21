@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { HiStar } from 'react-icons/hi'
 import Image from 'next/image'
@@ -50,23 +51,40 @@ const reviews = [
 ]
 
 export default function SocialProof() {
+  const [isMobile, setIsMobile] = useState(false)
+  
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
   return (
     <section className="py-20 relative">
-      {/* Background with tint */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-gradient-to-b from-white/90 via-white/85 to-white/90 z-10" />
-        <Image
-          src="/photos/hotel/hotel4.JPEG"
-          alt="Lakeside Inn"
-          fill
-          className="object-cover"
-          sizes="100vw"
-        />
-      </div>
+      {/* Background with tint - REMOVED ON MOBILE for performance */}
+      {!isMobile && (
+        <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 bg-gradient-to-b from-white/90 via-white/85 to-white/90 z-10" />
+          <Image
+            src="/photos/hotel/hotel4.JPEG"
+            alt="Lakeside Inn"
+            fill
+            className="object-cover"
+            sizes="100vw"
+            loading="lazy"
+            quality={75}
+          />
+        </div>
+      )}
+      {isMobile && (
+        <div className="absolute inset-0 z-0 bg-gradient-to-b from-gray-50 to-white" />
+      )}
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {reviews.map((review, index) => (
+          {(isMobile ? reviews.slice(0, 3) : reviews).map((review, index) => (
             <motion.div
               key={review.id}
               initial={{ opacity: 0, y: 20 }}

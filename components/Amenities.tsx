@@ -38,19 +38,36 @@ export default function Amenities() {
     }
   }, [])
 
+  const [isMobile, setIsMobile] = useState(false)
+  
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
   return (
     <section className="py-20 relative">
-      {/* Background with tint */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-gradient-to-b from-gray-50/95 via-white/90 to-gray-50/95 z-10" />
-        <Image
-          src="/photos/hotel/IMG_2819.JPG"
-          alt="Outdoor Pool"
-          fill
-          className="object-cover"
-          sizes="100vw"
-        />
-      </div>
+      {/* Background with tint - REMOVED ON MOBILE for performance */}
+      {!isMobile && (
+        <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 bg-gradient-to-b from-gray-50/95 via-white/90 to-gray-50/95 z-10" />
+          <Image
+            src="/photos/hotel/IMG_2819.JPG"
+            alt="Outdoor Pool"
+            fill
+            className="object-cover"
+            sizes="100vw"
+            loading="lazy"
+            quality={75}
+          />
+        </div>
+      )}
+      {isMobile && (
+        <div className="absolute inset-0 z-0 bg-gradient-to-b from-gray-50 to-white" />
+      )}
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {useMotion ? (

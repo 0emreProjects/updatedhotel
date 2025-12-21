@@ -145,21 +145,36 @@ export default function BarSection() {
     } catch (e) {}
   }, [currentEventIndex])
 
+  const [isMobile, setIsMobile] = useState(false)
+  
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
   return (
     <section id="bar" className="py-20 relative">
-      {/* Background with tint */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/80 to-white/85 z-10 backdrop-blur-sm" />
-        <Image
-          src="/photos/hotel/IMG_0562.JPEG"
-          alt="Bar"
-          fill
-          className="object-cover object-center"
-          sizes="100vw"
-          priority
-          quality={typeof window !== 'undefined' && window.innerWidth < 768 ? 75 : 90}
-        />
-      </div>
+      {/* Background with tint - REMOVED ON MOBILE for performance */}
+      {!isMobile && (
+        <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/80 to-white/85 z-10 backdrop-blur-sm" />
+          <Image
+            src="/photos/hotel/IMG_0562.JPEG"
+            alt="Bar"
+            fill
+            className="object-cover object-center"
+            sizes="100vw"
+            loading="lazy"
+            quality={90}
+          />
+        </div>
+      )}
+      {isMobile && (
+        <div className="absolute inset-0 z-0 bg-gradient-to-b from-gray-50 to-white" />
+      )}
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div

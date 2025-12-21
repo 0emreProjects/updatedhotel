@@ -1,23 +1,40 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 
 export default function AboutSection() {
+  const [isMobile, setIsMobile] = useState(false)
+  
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
   return (
     <section id="about" className="py-20 relative">
-      {/* Background with tint */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/80 to-white/85 z-10" />
-        <Image
-          src="/photos/hotel/hotel1.JPG"
-          alt="Lakeside Inn"
-          fill
-          className="object-cover"
-          sizes="100vw"
-          priority
-        />
-      </div>
+      {/* Background with tint - REMOVED ON MOBILE for performance */}
+      {!isMobile && (
+        <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/80 to-white/85 z-10" />
+          <Image
+            src="/photos/hotel/hotel1.JPG"
+            alt="Lakeside Inn"
+            fill
+            className="object-cover"
+            sizes="100vw"
+            loading="lazy"
+            quality={75}
+          />
+        </div>
+      )}
+      {isMobile && (
+        <div className="absolute inset-0 z-0 bg-gradient-to-b from-gray-50 to-white" />
+      )}
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -34,6 +51,8 @@ export default function AboutSection() {
                 fill
                 className="object-cover"
                 sizes="(max-width: 1024px) 100vw, 50vw"
+                loading={isMobile ? 'lazy' : 'eager'}
+                quality={isMobile ? 60 : 85}
               />
             </div>
           </motion.div>

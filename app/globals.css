@@ -154,15 +154,21 @@ img {
 
   /* Optimize all animations for mobile - make them even faster */
   * {
-    transition-duration: 100ms !important;
-    animation-duration: 100ms !important;
+    transition-duration: 80ms !important;
+    animation-duration: 80ms !important;
   }
   
   /* Disable heavy animations on mobile */
   [class*="motion-"],
   [data-framer-component] {
-    transition-duration: 100ms !important;
-    animation-duration: 100ms !important;
+    transition-duration: 80ms !important;
+    animation-duration: 80ms !important;
+  }
+  
+  /* Disable viewport animations on mobile for faster initial load */
+  [data-framer-name],
+  [class*="whileInView"] {
+    animation: none !important;
   }
 
   /* Disable heavy effects on mobile */
