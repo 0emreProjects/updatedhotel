@@ -30,10 +30,10 @@ export default function Hero() {
   const videoSources: VideoSource = {
     // rooms: desktop should show the static room image (not a video)
     rooms: '/photos/menuRoom1.jpeg',
-    // functions/events background video (desktop only)
-    events: '/videos/videoLakesideRoom.MOV',
-    // waves restaurant & bar background video (desktop only)
-    bar: '/videos/barVideo.MOV',
+    // functions/events background video (desktop only) - using .mp4 for better Chrome compatibility
+    events: '/videos/videoLakesideRoom.mp4',
+    // waves restaurant & bar background video (desktop only) - using .mp4 for better Chrome compatibility
+    bar: '/videos/barVideo.mp4',
   }
 
   const imageSources: VideoSource = {
@@ -47,6 +47,7 @@ export default function Hero() {
   const [showVideo, setShowVideo] = useState(false)
   const [videoSupport, setVideoSupport] = useState<{ mp4: boolean; quicktime: boolean } | null>(null)
   const [mp4Exists, setMp4Exists] = useState<Record<string, boolean>>({})
+  const [isChrome, setIsChrome] = useState(false)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -54,40 +55,25 @@ export default function Hero() {
     // set initial value on mount to avoid mismatched server/client markup
     setFromWindow()
     window.addEventListener('resize', setFromWindow)
+    
+    // Detect Chrome browser
+    const userAgent = window.navigator.userAgent.toLowerCase()
+    const isChromeBrowser = /chrome/.test(userAgent) && !/edge|opr/.test(userAgent)
+    setIsChrome(isChromeBrowser)
+    console.log('Browser detected:', isChromeBrowser ? 'Chrome' : 'Other')
+    
     // detect browser video support (run on client)
     try {
       const v = document.createElement('video')
       const mp4 = !!v.canPlayType && v.canPlayType('video/mp4') !== ''
       const quicktime = !!v.canPlayType && v.canPlayType('video/quicktime') !== ''
       setVideoSupport({ mp4, quicktime })
+      console.log('Video support:', { mp4, quicktime })
     } catch (e) {
       setVideoSupport({ mp4: false, quicktime: false })
     }
 
-    // Check whether .mp4 equivalents exist for the video sources so we don't include missing files
-    ;(async () => {
-      try {
-        const keys: (keyof VideoSource)[] = ['events', 'bar']
-        const results: Record<string, boolean> = {}
-        await Promise.all(keys.map(async (k) => {
-          const src = (videoSources as any)[k]
-          if (!src || !/\.MOV$/i.test(src)) {
-            results[k] = false
-            return
-          }
-          const mp4 = src.replace(/\.MOV$/i, '.mp4')
-          try {
-            const res = await fetch(mp4, { method: 'HEAD' })
-            results[k] = res.ok
-          } catch (e) {
-            results[k] = false
-          }
-        }))
-        setMp4Exists(results)
-      } catch (e) {
-        // ignore
-      }
-    })()
+    // No need to check for .mp4 files anymore since we're using them directly
 
     // enable the video layer quickly on desktop so videos appear again
     // (short delay still lets LCP image paint first). Mobile remains unchanged.
@@ -131,13 +117,13 @@ export default function Hero() {
             const img = new window.Image()
             img.src = videoSources.rooms
           } else if (theme === 'events' && videoSources.events) {
-            // Preload the actual .MOV file
+            // Preload the .mp4 file
             const video = document.createElement('video')
             video.src = videoSources.events
             video.preload = 'auto'
             video.muted = true
           } else if (theme === 'bar' && videoSources.bar) {
-            // Preload the actual .MOV file
+            // Preload the .mp4 file
             const video = document.createElement('video')
             video.src = videoSources.bar
             video.preload = 'auto'
@@ -146,22 +132,32 @@ export default function Hero() {
         }
         setActiveTheme(theme)
         
-        // Force video to play when theme changes (user interaction via hover)
-        // This works even in private/incognito mode because hover is a user gesture
+        // Force video to play when theme changes (user interaction via hover/click)
+        // Chrome requires a more direct user gesture, so we try multiple approaches
         if (!isMobile && (theme === 'events' || theme === 'bar')) {
-          setTimeout(() => {
-            const video = videoRefs.current[theme]
-            if (video) {
-              video.play().then(() => {
-                // Video started playing successfully
-                setAutoplayBlocked(prev => ({ ...prev, [theme]: false }))
-              }).catch((err) => {
-                // Autoplay blocked - mark it so we can show fallback
-                console.log('Autoplay blocked for', theme, err)
-                setAutoplayBlocked(prev => ({ ...prev, [theme]: true }))
-              })
-            }
-          }, 100)
+          // Try immediately and with delays for Chrome compatibility
+          const tryPlayVideo = (delay = 0) => {
+            setTimeout(() => {
+              const video = videoRefs.current[theme]
+              if (video) {
+                // Reset video to beginning for better Chrome compatibility
+                video.currentTime = 0
+                video.play().then(() => {
+                  // Video started playing successfully
+                  setAutoplayBlocked(prev => ({ ...prev, [theme]: false }))
+                }).catch((err) => {
+                  // Autoplay blocked - mark it so we can show fallback
+                  console.log('Autoplay blocked for', theme, err)
+                  setAutoplayBlocked(prev => ({ ...prev, [theme]: true }))
+                })
+              }
+            }, delay)
+          }
+          
+          // Try multiple times with different delays for Chrome
+          tryPlayVideo(50)
+          tryPlayVideo(150)
+          tryPlayVideo(300)
         }
       })
     }
@@ -318,23 +314,23 @@ export default function Hero() {
                   )
                 }
 
-                // Build source list based on actual `.mp4` availability and browser support.
+                // Build source list - now using .mp4 directly (much better Chrome compatibility)
                 const sources: { src: string; type: string }[] = []
-                const mp4Src = src.replace(/\.MOV$/i, '.mp4')
-                const hasMp4 = !!mp4Exists[theme]
-
-                // Prefer `.mp4` when browser supports it and file exists, otherwise use `.MOV` when supported.
-                if ((videoSupport && videoSupport.mp4 && hasMp4) || (!videoSupport && hasMp4)) {
-                  sources.push({ src: mp4Src, type: 'video/mp4' })
-                }
-
-                if ((videoSupport && videoSupport.quicktime) || !videoSupport) {
-                  // include MOV as fallback if browser may support quicktime
-                  sources.push({ src, type: 'video/quicktime' })
-                }
+                
+                // Since we're using .mp4 files directly, just add the mp4 source
+                // All modern browsers support .mp4, including Chrome
+                sources.push({ src, type: 'video/mp4' })
+                
+                console.log('Building sources for', theme, {
+                  src,
+                  type: 'video/mp4',
+                  videoSupport,
+                  isChrome
+                })
 
                 // Check if autoplay is blocked for this theme
-                const isBlocked = autoplayBlocked[theme]
+                // For Chrome, never show fallback - always show video even if paused
+                const isBlocked = false // Always show video, never block it
 
                 // If we have no valid sources for this browser, render the fallback image
                 if (sources.length === 0) {
@@ -370,11 +366,19 @@ export default function Hero() {
                     <motion.video
                       key={theme}
                       ref={(el) => {
-                        if (el) videoRefs.current[theme] = el
+                        if (el) {
+                          videoRefs.current[theme] = el
+                          // Try to play immediately when ref is set (for Chrome)
+                          if (activeTheme === theme && !isMobile) {
+                            setTimeout(() => {
+                              el.play().catch(() => {})
+                            }, 50)
+                          }
+                        }
                       }}
                       data-theme={theme}
                       initial={{ opacity: 0 }}
-                      animate={{ opacity: activeTheme === theme && !isBlocked ? 1 : 0 }}
+                      animate={{ opacity: activeTheme === theme ? 1 : 0 }}
                       transition={{ 
                         duration: isMobile ? 0.15 : 0.2, 
                         ease: [0.4, 0, 0.2, 1]
@@ -385,29 +389,91 @@ export default function Hero() {
                       playsInline
                       preload={isMobile ? 'metadata' : 'auto'}
                       className="absolute inset-0 w-full h-full object-cover"
+                      onClick={(e) => {
+                        // Allow clicking on video to play it (Chrome workaround)
+                        const video = e.currentTarget as HTMLVideoElement
+                        if (video.paused) {
+                          video.play().then(() => {
+                            setAutoplayBlocked(prev => ({ ...prev, [theme]: false }))
+                          }).catch(() => {})
+                        }
+                      }}
                       style={{ 
-                        opacity: activeTheme === theme && !isBlocked ? 1 : 0, 
+                        opacity: activeTheme === theme ? 1 : 0, 
                         pointerEvents: activeTheme === theme ? 'auto' : 'none',
                         willChange: activeTheme === theme ? 'opacity' : 'auto',
                         transform: 'translateZ(0)',
-                        backfaceVisibility: 'hidden'
+                        backfaceVisibility: 'hidden',
+                        zIndex: activeTheme === theme ? 1 : 0
                       }}
                       onCanPlay={(e) => {
-                        // Ensure video plays when it can play
+                        // Ensure video plays when it can play - Chrome needs multiple attempts
                         const video = e.target as HTMLVideoElement
+                        console.log('onCanPlay for', theme, 'video:', {
+                          paused: video.paused,
+                          readyState: video.readyState,
+                          src: video.currentSrc,
+                          networkState: video.networkState
+                        })
                         if (activeTheme === theme) {
-                          video.play().then(() => {
-                            setAutoplayBlocked(prev => ({ ...prev, [theme]: false }))
-                          }).catch(() => {
-                            // Autoplay blocked - will show fallback image
-                            setAutoplayBlocked(prev => ({ ...prev, [theme]: true }))
-                          })
+                          const tryPlay = () => {
+                            // For Chrome, ensure video is muted and has playsInline
+                            if (isChrome) {
+                              video.muted = true
+                              video.setAttribute('playsinline', 'true')
+                              video.setAttribute('webkit-playsinline', 'true')
+                            }
+                            video.play().then(() => {
+                              console.log('✅ Video playing successfully for', theme)
+                              setAutoplayBlocked(prev => ({ ...prev, [theme]: false }))
+                            }).catch((err) => {
+                              // Don't immediately show fallback - Chrome might need more time
+                              console.warn('❌ Autoplay blocked on canPlay:', err, 'for theme:', theme)
+                              // Only set blocked after multiple failures
+                              if (isChrome) {
+                                // Give Chrome more chances
+                                setTimeout(() => {
+                                  video.play().catch(() => {
+                                    console.warn('Chrome retry failed for', theme)
+                                  })
+                                }, 500)
+                              } else {
+                                setAutoplayBlocked(prev => ({ ...prev, [theme]: true }))
+                              }
+                            })
+                          }
+                          tryPlay()
+                          // Retry for Chrome compatibility
+                          setTimeout(tryPlay, 100)
+                          setTimeout(tryPlay, 300)
+                          if (isChrome) {
+                            setTimeout(tryPlay, 500)
+                            setTimeout(tryPlay, 1000)
+                          }
                         }
                       }}
                       onLoadedData={(e) => {
-                        // Ensure video plays when loaded
+                        // Ensure video plays when loaded - Chrome needs multiple attempts
                         const video = e.target as HTMLVideoElement
                         if (activeTheme === theme) {
+                          const tryPlay = () => {
+                            video.play().then(() => {
+                              setAutoplayBlocked(prev => ({ ...prev, [theme]: false }))
+                            }).catch((err) => {
+                              console.log('Autoplay blocked on loadedData:', err)
+                              setAutoplayBlocked(prev => ({ ...prev, [theme]: true }))
+                            })
+                          }
+                          tryPlay()
+                          // Retry for Chrome compatibility
+                          setTimeout(tryPlay, 100)
+                          setTimeout(tryPlay, 300)
+                        }
+                      }}
+                      onLoadedMetadata={(e) => {
+                        // Chrome sometimes needs this event to trigger playback
+                        const video = e.target as HTMLVideoElement
+                        if (activeTheme === theme && video.readyState >= 2) {
                           video.play().then(() => {
                             setAutoplayBlocked(prev => ({ ...prev, [theme]: false }))
                           }).catch(() => {
@@ -422,6 +488,11 @@ export default function Hero() {
                       onError={(e) => {
                         // Fallback to image if video fails to load
                         const target = e.target as HTMLVideoElement
+                        console.error('❌ Video error for', theme, ':', {
+                          error: target.error,
+                          networkState: target.networkState,
+                          src: target.currentSrc
+                        })
                         setAutoplayBlocked(prev => ({ ...prev, [theme]: true }))
                         const parent = target.parentElement
                         if (parent && !parent.querySelector('img.fallback-image')) {
@@ -433,18 +504,25 @@ export default function Hero() {
                           parent.appendChild(img)
                         }
                       }}
+                      onStalled={(e) => {
+                        console.warn('Video stalled for', theme)
+                      }}
+                      onWaiting={(e) => {
+                        console.warn('Video waiting for', theme)
+                      }}
                     >
                       {sources.map((s, i) => (
                         <source key={i} src={s.src} type={s.type} />
                       ))}
                     </motion.video>
-                    {/* Fallback image when autoplay is blocked or video fails */}
-                    {isBlocked && activeTheme === theme && (
+                    {/* Fallback image when autoplay is blocked or video fails - only show if not Chrome or after extended failure */}
+                    {isBlocked && activeTheme === theme && !isChrome && (
                       <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.2 }}
                         className="absolute inset-0 w-full h-full"
+                        style={{ zIndex: 2 }}
                       >
                         <Image
                           src={theme === 'events' ? '/photos/events/IMG_6482.JPG' : theme === 'bar' ? '/photos/bar/IMG_4988.JPG' : imageSources[theme]}
@@ -454,6 +532,40 @@ export default function Hero() {
                           quality={90}
                           priority
                         />
+                      </motion.div>
+                    )}
+                    {/* For Chrome, show a subtle play overlay if video is paused */}
+                    {isChrome && activeTheme === theme && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="absolute inset-0 w-full h-full flex items-center justify-center pointer-events-none"
+                        style={{ zIndex: 3 }}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const video = videoRefs.current[theme]
+                          if (video && video.paused) {
+                            video.play().catch(() => {})
+                          }
+                        }}
+                      >
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            const video = videoRefs.current[theme]
+                            if (video) {
+                              video.play().then(() => {
+                                setAutoplayBlocked(prev => ({ ...prev, [theme]: false }))
+                              }).catch(() => {})
+                            }
+                          }}
+                          className="bg-black/50 hover:bg-black/70 text-white rounded-full p-4 pointer-events-auto transition-all"
+                          style={{ display: 'none' }} // Hidden by default, only show if needed
+                        >
+                          <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z"/>
+                          </svg>
+                        </button>
                       </motion.div>
                     )}
                   </>
@@ -517,7 +629,24 @@ export default function Hero() {
               <button
                 key={pillar.id}
                 onMouseEnter={() => handleThemeChange(pillar.id)}
-                onClick={() => navigateToSection(pillar.id)}
+                onClick={(e) => {
+                  // Click is a stronger user gesture for Chrome autoplay
+                  handleThemeChange(pillar.id)
+                  // Also try to play video immediately on click
+                  if (pillar.id === 'events' || pillar.id === 'bar') {
+                    setTimeout(() => {
+                      const video = videoRefs.current[pillar.id]
+                      if (video) {
+                        video.play().then(() => {
+                          setAutoplayBlocked(prev => ({ ...prev, [pillar.id]: false }))
+                        }).catch(() => {
+                          setAutoplayBlocked(prev => ({ ...prev, [pillar.id]: true }))
+                        })
+                      }
+                    }, 50)
+                  }
+                  navigateToSection(pillar.id)
+                }}
                 className="group relative text-left"
               >
                 <div className="h-[2px] w-full bg-white/10 mb-4 overflow-hidden">
