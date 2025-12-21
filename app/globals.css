@@ -152,10 +152,17 @@ img {
     will-change: transform;
   }
 
-  /* Optimize all animations for mobile */
+  /* Optimize all animations for mobile - make them even faster */
   * {
-    transition-duration: 150ms !important;
-    animation-duration: 150ms !important;
+    transition-duration: 100ms !important;
+    animation-duration: 100ms !important;
+  }
+  
+  /* Disable heavy animations on mobile */
+  [class*="motion-"],
+  [data-framer-component] {
+    transition-duration: 100ms !important;
+    animation-duration: 100ms !important;
   }
 
   /* Disable heavy effects on mobile */
@@ -175,11 +182,18 @@ img {
     transform: none !important;
   }
 
-  /* Optimize images */
-  img {
+  /* Optimize images for mobile - lower quality, faster loading */
+  img,
+  [data-next-image] {
     image-rendering: -webkit-optimize-contrast;
     image-rendering: crisp-edges;
     transform: translateZ(0);
+    content-visibility: auto;
+  }
+  
+  /* Reduce image quality on mobile for faster loading */
+  img[loading="lazy"] {
+    content-visibility: auto;
   }
 
   /* Reduce motion for better performance */
@@ -207,5 +221,26 @@ img {
     background-color: rgba(255, 255, 255, 0.98) !important;
     backdrop-filter: blur(12px);
     border: 1px solid rgba(0,0,0,0.05);
+  }
+  
+  /* Disable expensive effects on mobile */
+  [class*="backdrop-blur"] {
+    backdrop-filter: blur(4px) !important;
+  }
+  
+  /* Optimize Next.js Image component on mobile */
+  img[data-next-image] {
+    content-visibility: auto;
+    will-change: auto;
+  }
+  
+  /* Reduce motion components complexity on mobile */
+  [class*="motion-"] {
+    will-change: auto !important;
+  }
+  
+  /* Faster image transitions on mobile */
+  img {
+    transition: opacity 100ms ease-out !important;
   }
 }

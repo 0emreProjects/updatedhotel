@@ -194,7 +194,8 @@ export default function Hero() {
                 className="object-cover object-center"
                 priority
                 loading="eager"
-                quality={90}
+                quality={75}
+                sizes="100vw"
               />
             ) : (
               // Desktop: Use videos for events & bar, and an image for rooms

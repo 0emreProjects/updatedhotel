@@ -109,9 +109,13 @@ export default function EventsSection() {
     touchEndX.current = null
   }
 
-  // Preload all event images on mount
+  // Preload event images on mount - skip on mobile for performance
   useEffect(() => {
     if (typeof window === 'undefined') return
+    const isMobile = window.innerWidth < 768
+    // Don't preload all images on mobile - too slow
+    if (isMobile) return
+    
     try {
       eventImages.forEach((src) => preloadAndDecode(src).catch(() => {}))
       eventTypes.forEach((t) => preloadAndDecode(t.image).catch(() => {}))
@@ -130,7 +134,7 @@ export default function EventsSection() {
           className="object-cover object-center"
           sizes="100vw"
           priority
-          quality={92}
+          quality={typeof window !== 'undefined' && window.innerWidth < 768 ? 75 : 92}
         />
       </div>
 
@@ -161,8 +165,8 @@ export default function EventsSection() {
                 src={eventImages[currentImageIndex]}
                 alt="Event"
                 className="w-full h-full"
-                transitionDuration={150}
-                loading="eager"
+                transitionDuration={typeof window !== 'undefined' && window.innerWidth < 768 ? 80 : 150}
+                loading={typeof window !== 'undefined' && window.innerWidth < 768 ? 'lazy' : 'eager'}
                 decoding="async"
               />
             </div>

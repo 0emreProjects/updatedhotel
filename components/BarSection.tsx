@@ -110,17 +110,22 @@ export default function BarSection() {
     eventTouchEndX.current = null
   }
 
-  // Preload bar + event images on mount
+  // Preload bar + event images on mount - skip on mobile for performance
   useEffect(() => {
     if (typeof window === 'undefined') return
+    const isMobile = window.innerWidth < 768
+    // Don't preload all images on mobile - too slow
+    if (isMobile) return
+    
     try {
       barImages.forEach((s) => { preloadAndDecode(s).catch(() => {}) })
       events.forEach((ev) => { preloadAndDecode(ev.image).catch(() => {}) })
     } catch (e) {}
   }, [])
 
-  // Preload neighbors for bar images
+  // Preload neighbors for bar images - skip on mobile
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) return
     try {
       const nextIdx = (currentBarImageIndex + 1) % barImages.length
       const prevIdx = (currentBarImageIndex - 1 + barImages.length) % barImages.length
@@ -129,8 +134,9 @@ export default function BarSection() {
     } catch (e) {}
   }, [currentBarImageIndex])
 
-  // Preload neighbors for events slider
+  // Preload neighbors for events slider - skip on mobile
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) return
     try {
       const nextIdx = (currentEventIndex + 1) % events.length
       const prevIdx = (currentEventIndex - 1 + events.length) % events.length
@@ -151,7 +157,7 @@ export default function BarSection() {
           className="object-cover object-center"
           sizes="100vw"
           priority
-          quality={90}
+          quality={typeof window !== 'undefined' && window.innerWidth < 768 ? 75 : 90}
         />
       </div>
 

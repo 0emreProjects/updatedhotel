@@ -258,9 +258,12 @@ function RoomCard({ room, index, onOpenModal }: { room: Room; index: number; onO
   const nextImage = () => {
     setCurrentImageIndex((prev) => {
       const next = (prev + 1) % room.images.length
-      try {
-        preloadAndDecode(room.images[(next + 1) % room.images.length]).catch(() => {})
-      } catch (e) {}
+      // Only preload on desktop, mobile will load on demand
+      if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+        try {
+          preloadAndDecode(room.images[(next + 1) % room.images.length]).catch(() => {})
+        } catch (e) {}
+      }
       return next
     })
   }
@@ -268,15 +271,19 @@ function RoomCard({ room, index, onOpenModal }: { room: Room; index: number; onO
   const prevImage = () => {
     setCurrentImageIndex((prev) => {
       const next = (prev - 1 + room.images.length) % room.images.length
-      try {
-        preloadAndDecode(room.images[(next - 1 + room.images.length) % room.images.length]).catch(() => {})
-      } catch (e) {}
+      // Only preload on desktop, mobile will load on demand
+      if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+        try {
+          preloadAndDecode(room.images[(next - 1 + room.images.length) % room.images.length]).catch(() => {})
+        } catch (e) {}
+      }
       return next
     })
   }
 
-  // Preload all room images on hover
+  // Preload all room images on hover (desktop only)
   const handlePreloadAll = () => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) return // Skip on mobile
     try {
       room.images.forEach((src) => {
         preloadAndDecode(src).catch(() => {})
@@ -287,7 +294,10 @@ function RoomCard({ room, index, onOpenModal }: { room: Room; index: number; onO
   // Swipe handlers for mobile
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX
-    handlePreloadAll()
+    // Don't preload all on mobile - just preload next/prev
+    if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+      handlePreloadAll()
+    }
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -333,8 +343,8 @@ function RoomCard({ room, index, onOpenModal }: { room: Room; index: number; onO
             src={room.images[currentImageIndex]}
             alt={room.title}
             className="w-full h-full"
-            transitionDuration={150}
-            loading="eager"
+            transitionDuration={typeof window !== 'undefined' && window.innerWidth < 768 ? 80 : 150}
+            loading={typeof window !== 'undefined' && window.innerWidth < 768 ? 'lazy' : 'eager'}
             decoding="async"
           />
         </div>
@@ -415,14 +425,25 @@ function RoomCard({ room, index, onOpenModal }: { room: Room; index: number; onO
 }
 
 export default function RoomGallery() {
-  // Preload and decode room images on mount
+  // Preload and decode room images on mount - but skip on mobile for performance
   useEffect(() => {
     if (typeof window === 'undefined') return
+    const isMobile = window.innerWidth < 768
+    // Don't preload all images on mobile - too slow
+    if (isMobile) return
+    
     try {
+      // Only preload first image of each room on mobile, all on desktop
       rooms.forEach((room) => {
-        room.images.forEach((src) => {
-          preloadAndDecode(src).catch(() => {})
-        })
+        if (isMobile) {
+          // Just preload first image
+          preloadAndDecode(room.images[0]).catch(() => {})
+        } else {
+          // Preload all on desktop
+          room.images.forEach((src) => {
+            preloadAndDecode(src).catch(() => {})
+          })
+        }
       })
     } catch (e) {}
   }, [])

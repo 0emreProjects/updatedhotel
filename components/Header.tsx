@@ -38,7 +38,14 @@ export default function Header({ onMenuOpen }: HeaderProps) {
       
       {/* LOGO SECTION */}
       <Link 
-        href="/" 
+        href="/"
+        onClick={(e) => {
+          // On mobile, ensure we go to top of homepage
+          if (pathname === '/') {
+            e.preventDefault()
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+          }
+        }}
         className="relative group pointer-events-auto"
       >
         {/* The Tinted Rectangle Backdrop */}
