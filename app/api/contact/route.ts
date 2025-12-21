@@ -76,7 +76,7 @@ ${message}
       const { data, error } = await resend.emails.send({
         from: process.env.RESEND_FROM_EMAIL || 'Lakeside Inn <noreply@lakesideinn.com>',
         to: 'frontdeskmanager@thelakesidepark.com',
-        replyTo: email,
+        reply_to: email,
         subject: `Contact Form: ${subject || 'General Inquiry'} - ${firstName} ${lastName}`,
         text: emailContent,
         html: htmlContent,
