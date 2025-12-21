@@ -11,6 +11,8 @@ import Footer from '@/components/Footer'
 
 export default function ContactPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitStatus, setSubmitStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' })
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -22,10 +24,17 @@ export default function ContactPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
+    // Clear status message when user starts typing
+    if (submitStatus.type) {
+      setSubmitStatus({ type: null, message: '' })
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsSubmitting(true)
+    setSubmitStatus({ type: null, message: '' })
+
     try {
       const response = await fetch('/api/contact', {
         method: 'POST',
@@ -35,39 +44,43 @@ export default function ContactPage() {
           lastName: formData.lastName,
           email: formData.email,
           phone: formData.phone,
+          subject: formData.subject,
           message: formData.message,
           partyDate: '',
           partyTime: '',
           numGuests: '',
         })
       })
-      
-      if (response.ok) {
-        // Fallback to mailto
-        const emailBody = `
-Name: ${formData.firstName} ${formData.lastName}
-Email: ${formData.email}
-Phone: ${formData.phone}
-Subject: ${formData.subject}
 
-Message:
-${formData.message}
-        `.trim()
-        window.location.href = `mailto:frontdeskmanager@thelakesidepark.com?subject=${encodeURIComponent(formData.subject)}&body=${encodeURIComponent(emailBody)}`
-        setFormData({ firstName: '', lastName: '', email: '', phone: '', subject: 'General Inquiry', message: '' })
+      const data = await response.json()
+      
+      if (response.ok && data.success) {
+        setSubmitStatus({ 
+          type: 'success', 
+          message: data.message || 'Thank you! Your message has been sent successfully.' 
+        })
+        // Reset form
+        setFormData({ 
+          firstName: '', 
+          lastName: '', 
+          email: '', 
+          phone: '', 
+          subject: 'General Inquiry', 
+          message: '' 
+        })
+      } else {
+        setSubmitStatus({ 
+          type: 'error', 
+          message: data.message || 'Failed to send message. Please try again.' 
+        })
       }
     } catch (error) {
-      // Fallback to mailto on error
-      const emailBody = `
-Name: ${formData.firstName} ${formData.lastName}
-Email: ${formData.email}
-Phone: ${formData.phone}
-Subject: ${formData.subject}
-
-Message:
-${formData.message}
-      `.trim()
-      window.location.href = `mailto:frontdeskmanager@thelakesidepark.com?subject=${encodeURIComponent(formData.subject)}&body=${encodeURIComponent(emailBody)}`
+      setSubmitStatus({ 
+        type: 'error', 
+        message: 'An error occurred. Please try again later or contact us directly at frontdeskmanager@thelakesidepark.com' 
+      })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -170,14 +183,54 @@ ${formData.message}
             className="lg:col-span-7 bg-white/90 md:bg-white/80 md:backdrop-blur-md p-6 md:p-16 rounded-[1rem] md:rounded-[2.5rem] border border-blue-100 shadow-none md:shadow-2xl md:shadow-blue-900/10"
           >
             <form onSubmit={handleSubmit} className="space-y-10">
+              {/* Success/Error Messages */}
+              {submitStatus.type && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`p-4 rounded-lg ${
+                    submitStatus.type === 'success'
+                      ? 'bg-green-50 text-green-800 border border-green-200'
+                      : 'bg-red-50 text-red-800 border border-red-200'
+                  }`}
+                >
+                  <p className="text-sm font-medium">{submitStatus.message}</p>
+                </motion.div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                <FloatingInput label="First Name" name="firstName" onChange={handleChange} required />
-                <FloatingInput label="Last Name" name="lastName" onChange={handleChange} required />
+                <FloatingInput 
+                  label="First Name" 
+                  name="firstName" 
+                  value={formData.firstName}
+                  onChange={handleChange} 
+                  required 
+                />
+                <FloatingInput 
+                  label="Last Name" 
+                  name="lastName" 
+                  value={formData.lastName}
+                  onChange={handleChange} 
+                  required 
+                />
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                <FloatingInput label="Email Address" type="email" name="email" onChange={handleChange} required />
-                <FloatingInput label="Phone Number" type="tel" name="phone" onChange={handleChange} />
+                <FloatingInput 
+                  label="Email Address" 
+                  type="email" 
+                  name="email" 
+                  value={formData.email}
+                  onChange={handleChange} 
+                  required 
+                />
+                <FloatingInput 
+                  label="Phone Number" 
+                  type="tel" 
+                  name="phone" 
+                  value={formData.phone}
+                  onChange={handleChange} 
+                />
               </div>
 
               <div className="space-y-3">
@@ -208,9 +261,17 @@ ${formData.message}
                 />
               </div>
 
-              <button type="submit" className="w-full group flex items-center justify-between bg-blue-600 text-white p-4 md:p-6 rounded-xl hover:bg-blue-700 transition-all duration-200 shadow-md md:shadow-xl md:shadow-blue-600/20">
-                <span className="uppercase tracking-[0.3em] text-xs md:text-sm font-bold">Send Inquiry</span>
-                <FaArrowRight className="group-hover:translate-x-2 transition-transform" />
+              <button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="w-full group flex items-center justify-between bg-blue-600 text-white p-4 md:p-6 rounded-xl hover:bg-blue-700 transition-all duration-200 shadow-md md:shadow-xl md:shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span className="uppercase tracking-[0.3em] text-xs md:text-sm font-bold">
+                  {isSubmitting ? 'Sending...' : 'Send Inquiry'}
+                </span>
+                {!isSubmitting && (
+                  <FaArrowRight className="group-hover:translate-x-2 transition-transform" />
+                )}
               </button>
             </form>
           </motion.div>
@@ -236,12 +297,14 @@ function ContactLink({ icon: Icon, title, detail, href }: any) {
   )
 }
 
-function FloatingInput({ label, ...props }: any) {
+function FloatingInput({ label, value, onChange, ...props }: any) {
   return (
     <div className="relative border-b border-blue-100 focus-within:border-blue-600 transition-colors py-2">
       <label className="text-[10px] uppercase tracking-widest text-blue-400 font-bold block mb-1 ml-1">{label}</label>
       <input
         {...props}
+        value={value}
+        onChange={onChange}
         className="w-full px-1 py-2 bg-transparent outline-none text-gray-900 placeholder:text-blue-100 font-serif italic text-xl"
       />
     </div>

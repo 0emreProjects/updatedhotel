@@ -6,11 +6,25 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import RoomModal from './RoomModal'
 
-const rooms = [
+interface Room {
+  id: number
+  title: string
+  subtitle: string
+  description: string
+  size: string
+  sleeps: number
+  bedType: string
+  highlights: string[]
+  images: string[]
+  isLakeside: boolean
+}
+
+const rooms: Room[] = [
   {
-    id: 'full-lakeside',
+    id: 1,
     title: 'Full Lakeside',
-    image: '/photos/rooms/full1.avif',
+    subtitle: 'Full Lakeside',
+    description: 'Individually furnished room with stunning lake views',
     images: [
       '/photos/rooms/full1.avif',
       '/photos/rooms/full2.avif',
@@ -30,12 +44,14 @@ const rooms = [
     ],
     size: '200 sq ft',
     sleeps: 3,
-    bed: '1 Double Bed',
+    bedType: '1 Double Bed',
+    isLakeside: true,
   },
   {
-    id: 'queen-standard',
+    id: 2,
     title: 'Standard Queen',
-    image: '/photos/rooms/queenStandard1.avif',
+    subtitle: 'Queen Non-Lakeside',
+    description: 'Comfortable queen room with modern amenities',
     images: [
       '/photos/rooms/queenStandard1.avif',
       '/photos/rooms/queenStandard2.avif',
@@ -56,12 +72,14 @@ const rooms = [
     ],
     size: '200 sq ft',
     sleeps: 3,
-    bed: '1 Queen Bed',
+    bedType: '1 Queen Bed',
+    isLakeside: false,
   },
   {
-    id: 'queen-lakeview',
+    id: 3,
     title: 'Queen Lake View',
-    image: '/photos/rooms/lakeview.avif',
+    subtitle: 'Queen Lakeside',
+    description: 'Beautiful queen room with panoramic lake views',
     images: [
       '/photos/rooms/lakeview.avif',
       '/photos/rooms/queenStandard2.avif',
@@ -82,12 +100,14 @@ const rooms = [
     ],
     size: '200 sq ft',
     sleeps: 3,
-    bed: '1 Queen Bed',
+    bedType: '1 Queen Bed',
+    isLakeside: true,
   },
   {
-    id: 'king-standard',
+    id: 4,
     title: 'King Standard',
-    image: '/photos/rooms/king1.avif',
+    subtitle: 'King Non-Lakeside',
+    description: 'Spacious king room with premium amenities',
     images: [
       '/photos/rooms/king1.avif',
       '/photos/rooms/king2.avif',
@@ -108,12 +128,14 @@ const rooms = [
     ],
     size: '200 sq ft',
     sleeps: 3,
-    bed: '1 King Bed',
+    bedType: '1 King Bed',
+    isLakeside: false,
   },
   {
-    id: 'king-lakeview',
-    title: 'King Lake View',
-    image: '/photos/rooms/kingL1.avif',
+    id: 5,
+    title: 'King Lakeside',
+    subtitle: 'King Lakeside',
+    description: 'Luxurious king room with stunning lake views',
     images: [
       '/photos/rooms/kingL1.avif',
       '/photos/rooms/lakeview.avif',
@@ -136,12 +158,14 @@ const rooms = [
     ],
     size: '200 sq ft',
     sleeps: 3,
-    bed: '1 King Bed',
+    bedType: '1 King Bed',
+    isLakeside: true,
   },
   {
-    id: 'double-double',
+    id: 6,
     title: 'Standard Double Double',
-    image: '/photos/rooms/fb1.avif',
+    subtitle: '2 Full Beds Non-Lakeside',
+    description: 'Spacious room with two double beds, perfect for families',
     images: [
       '/photos/rooms/fb1.avif',
       '/photos/rooms/fb2.avif',
@@ -160,12 +184,14 @@ const rooms = [
     ],
     size: '200 sq ft',
     sleeps: 4,
-    bed: '2 Double Beds',
+    bedType: '2 Double Beds',
+    isLakeside: false,
   },
   {
-    id: 'double-double-lakeview',
-    title: 'Double Double Lake View',
-    image: '/photos/rooms/lakeview.avif',
+    id: 7,
+    title: 'Standard Double Double',
+    subtitle: '2 Full Beds Lakeside',
+    description: 'Family-friendly room with two double beds and lake views',
     images: [
       '/photos/rooms/lakeview.avif',
       '/photos/rooms/lakeview2.avif',
@@ -186,12 +212,14 @@ const rooms = [
     ],
     size: '200 sq ft',
     sleeps: 4,
-    bed: '2 Double Beds',
+    bedType: '2 Double Beds',
+    isLakeside: true,
   },
   {
-    id: 'queen-queen-lakeview',
+    id: 8,
     title: 'Standard Queen Queen Lake View',
-    image: '/photos/rooms/lakeview.avif',
+    subtitle: '2 Queen Lakeside',
+    description: 'Spacious room with two queen beds and beautiful lake views',
     images: [
       '/photos/rooms/lakeview.avif',
       '/photos/rooms/lakeview2.avif',
@@ -213,12 +241,14 @@ const rooms = [
     ],
     size: '200 sq ft',
     sleeps: 4,
-    bed: '2 Queen Beds',
+    bedType: '2 Queen Beds',
+    isLakeside: true,
   },
 ]
 
 export default function RoomsSection() {
-  const [selectedRoom, setSelectedRoom] = useState<typeof rooms[0] | null>(null)
+  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   return (
     <section id="rooms" className="py-20 bg-white scroll-mt-20">
@@ -245,11 +275,14 @@ export default function RoomsSection() {
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: index * 0.1 }}
               className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-smooth cursor-pointer"
-              onClick={() => setSelectedRoom(room)}
+              onClick={() => {
+                setSelectedRoom(room)
+                setIsModalOpen(true)
+              }}
             >
               <div className="relative h-64 overflow-hidden">
                 <Image
-                  src={room.image}
+                  src={room.images[0]}
                   alt={room.title}
                   fill
                   className="object-cover hover:scale-110 transition-smooth"
@@ -260,7 +293,7 @@ export default function RoomsSection() {
                   {room.title}
                 </h3>
                 <p className="text-gray-600 text-sm mb-4">
-                  {room.size} • Sleeps {room.sleeps} • {room.bed}
+                  {room.size} • Sleeps {room.sleeps} • {room.bedType}
                 </p>
                 <button className="w-full bg-lakeside-blue text-white py-2 rounded-lg hover:bg-blue-700 transition-fast">
                   View Details
@@ -281,7 +314,14 @@ export default function RoomsSection() {
       </div>
 
       {selectedRoom && (
-        <RoomModal room={selectedRoom} onClose={() => setSelectedRoom(null)} />
+        <RoomModal 
+          room={selectedRoom} 
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false)
+            setTimeout(() => setSelectedRoom(null), 300)
+          }} 
+        />
       )}
     </section>
   )

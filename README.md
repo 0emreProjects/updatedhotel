@@ -183,12 +183,20 @@ ffmpeg -i videoLakesideRoom.MOV -c:v libx264 -c:a aac videoLakesideRoom.mp4
 ffmpeg -i barVideo.MOV -c:v libx264 -c:a aac barVideo.mp4
 ```
 
-4. Run the development server:
+4. Set up email functionality (optional for development):
+   - See `EMAIL_SETUP.md` for detailed instructions
+   - Create a `.env.local` file with your Resend API key:
+     ```env
+     RESEND_API_KEY=re_your_api_key_here
+     RESEND_FROM_EMAIL=Lakeside Inn <onboarding@resend.dev>
+     ```
+
+5. Run the development server:
 ```bash
 npm run dev
 ```
 
-5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+6. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ### Building for Production
 
@@ -249,7 +257,7 @@ The website is fully responsive:
 - **Google Maps**: Embedded map in footer, "Get Directions" opens Google Maps with hotel location
 - **Social Media**: Links to Facebook, Instagram, Twitter (update with your actual links)
 - **Phone/Email**: Clickable contact information
-- **Email Form**: Contact form sends to `frontdeskmanager@thelakesidepark.com` via mailto (can be replaced with backend API)
+- **Email Form**: Contact form sends emails to `frontdeskmanager@thelakesidepark.com` using Resend email service
 
 ## 📂 Asset Organization
 
@@ -309,7 +317,7 @@ public/
 - All transitions are optimized for speed (0.2-0.3s)
 - Mobile version uses fixed background image for better performance
 - Touch swipe gestures work on mobile for photo navigation
-- Form submissions use `mailto:` - consider implementing a backend API for production
+- Email form uses Resend API for sending emails (see `EMAIL_SETUP.md` for configuration)
 - Google Maps embed may require API key for production use
 - Header shows only logo (no text) for a clean, minimal look
 
