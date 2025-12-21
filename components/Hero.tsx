@@ -20,6 +20,8 @@ export default function Hero() {
   // The actual viewport size is applied on mount in an effect below.
   const [isMobile, setIsMobile] = useState<boolean>(false)
   const containerRef = useRef(null)
+  const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({})
+  const [autoplayBlocked, setAutoplayBlocked] = useState<{ [key: string]: boolean }>({})
   
   const { scrollY } = useScroll()
   // Disable parallax on mobile for better performance
@@ -44,6 +46,7 @@ export default function Hero() {
   // Show video only after mount to avoid blocking initial LCP paint.
   const [showVideo, setShowVideo] = useState(false)
   const [videoSupport, setVideoSupport] = useState<{ mp4: boolean; quicktime: boolean } | null>(null)
+  const [mp4Exists, setMp4Exists] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -60,6 +63,31 @@ export default function Hero() {
     } catch (e) {
       setVideoSupport({ mp4: false, quicktime: false })
     }
+
+    // Check whether .mp4 equivalents exist for the video sources so we don't include missing files
+    ;(async () => {
+      try {
+        const keys: (keyof VideoSource)[] = ['events', 'bar']
+        const results: Record<string, boolean> = {}
+        await Promise.all(keys.map(async (k) => {
+          const src = (videoSources as any)[k]
+          if (!src || !/\.MOV$/i.test(src)) {
+            results[k] = false
+            return
+          }
+          const mp4 = src.replace(/\.MOV$/i, '.mp4')
+          try {
+            const res = await fetch(mp4, { method: 'HEAD' })
+            results[k] = res.ok
+          } catch (e) {
+            results[k] = false
+          }
+        }))
+        setMp4Exists(results)
+      } catch (e) {
+        // ignore
+      }
+    })()
 
     // enable the video layer quickly on desktop so videos appear again
     // (short delay still lets LCP image paint first). Mobile remains unchanged.
@@ -118,17 +146,22 @@ export default function Hero() {
         }
         setActiveTheme(theme)
         
-        // Force video to play when theme changes (after a short delay to ensure video element is ready)
+        // Force video to play when theme changes (user interaction via hover)
+        // This works even in private/incognito mode because hover is a user gesture
         if (!isMobile && (theme === 'events' || theme === 'bar')) {
           setTimeout(() => {
-            const videos = document.querySelectorAll(`video[data-theme="${theme}"]`)
-            videos.forEach((video) => {
-              const htmlVideo = video as HTMLVideoElement
-              if (htmlVideo.readyState >= 2) {
-                htmlVideo.play().catch(() => {})
-              }
-            })
-          }, 200)
+            const video = videoRefs.current[theme]
+            if (video) {
+              video.play().then(() => {
+                // Video started playing successfully
+                setAutoplayBlocked(prev => ({ ...prev, [theme]: false }))
+              }).catch((err) => {
+                // Autoplay blocked - mark it so we can show fallback
+                console.log('Autoplay blocked for', theme, err)
+                setAutoplayBlocked(prev => ({ ...prev, [theme]: true }))
+              })
+            }
+          }, 100)
         }
       })
     }
@@ -285,78 +318,145 @@ export default function Hero() {
                   )
                 }
 
-                // Build source list - prioritize .MOV (what exists), then try .mp4 as fallback
+                // Build source list based on actual `.mp4` availability and browser support.
                 const sources: { src: string; type: string }[] = []
-                
-                // First try .MOV file (this is what actually exists in the directory)
-                // Most modern browsers support .MOV files
-                sources.push({ src, type: 'video/quicktime' })
-                
-                // Also try .mp4 version as fallback (in case it gets converted later)
-                // But prioritize .MOV since that's what exists
                 const mp4Src = src.replace(/\.MOV$/i, '.mp4')
-                if (mp4Src !== src) {
+                const hasMp4 = !!mp4Exists[theme]
+
+                // Prefer `.mp4` when browser supports it and file exists, otherwise use `.MOV` when supported.
+                if ((videoSupport && videoSupport.mp4 && hasMp4) || (!videoSupport && hasMp4)) {
                   sources.push({ src: mp4Src, type: 'video/mp4' })
                 }
 
+                if ((videoSupport && videoSupport.quicktime) || !videoSupport) {
+                  // include MOV as fallback if browser may support quicktime
+                  sources.push({ src, type: 'video/quicktime' })
+                }
+
+                // Check if autoplay is blocked for this theme
+                const isBlocked = autoplayBlocked[theme]
+
+                // If we have no valid sources for this browser, render the fallback image
+                if (sources.length === 0) {
+                  return (
+                    <motion.div
+                      key={theme}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: activeTheme === theme ? 1 : 0 }}
+                      transition={{ duration: isMobile ? 0.15 : 0.2, ease: [0.4, 0, 0.2, 1] }}
+                      className="absolute inset-0 w-full h-full"
+                      style={{
+                        opacity: activeTheme === theme ? 1 : 0,
+                        pointerEvents: activeTheme === theme ? 'auto' : 'none',
+                        willChange: 'opacity',
+                        transform: 'translateZ(0)',
+                        backfaceVisibility: 'hidden'
+                      }}
+                    >
+                      <Image
+                        src={theme === 'events' ? '/photos/events/IMG_6482.JPG' : theme === 'bar' ? '/photos/bar/IMG_4988.JPG' : imageSources[theme]}
+                        alt={theme}
+                        fill
+                        className="object-cover object-center"
+                        quality={isMobile ? 75 : 90}
+                        loading={isMobile ? 'lazy' : 'eager'}
+                      />
+                    </motion.div>
+                  )
+                }
+
                 return (
-                  <motion.video
-                    key={theme}
-                    data-theme={theme}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: activeTheme === theme ? 1 : 0 }}
-                    transition={{ 
-                      duration: isMobile ? 0.15 : 0.2, 
-                      ease: [0.4, 0, 0.2, 1]
-                    }}
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    preload={isMobile ? 'metadata' : 'auto'}
-                    className="absolute inset-0 w-full h-full object-cover"
-                    style={{ 
-                      opacity: activeTheme === theme ? 1 : 0, 
-                      pointerEvents: activeTheme === theme ? 'auto' : 'none',
-                      willChange: activeTheme === theme ? 'opacity' : 'auto',
-                      transform: 'translateZ(0)',
-                      backfaceVisibility: 'hidden'
-                    }}
-                    onCanPlay={(e) => {
-                      // Ensure video plays when it can play
-                      const video = e.target as HTMLVideoElement
-                      if (activeTheme === theme) {
-                        video.play().catch(() => {})
-                      }
-                    }}
-                    onLoadedData={(e) => {
-                      // Ensure video plays when loaded
-                      const video = e.target as HTMLVideoElement
-                      if (activeTheme === theme) {
-                        video.play().catch(() => {})
-                      }
-                    }}
-                    onPlay={() => {
-                      // Video started playing - ensure it's visible
-                    }}
-                    onError={(e) => {
-                      // Fallback to image if video fails to load
-                      const target = e.target as HTMLVideoElement
-                      const parent = target.parentElement
-                      if (parent && !parent.querySelector('img.fallback-image')) {
-                        target.style.display = 'none'
-                        const img = document.createElement('img')
-                        img.src = theme === 'events' ? '/photos/events/IMG_6482.JPG' : theme === 'bar' ? '/photos/bar/IMG_4988.JPG' : imageSources[theme]
-                        img.className = 'absolute inset-0 w-full h-full object-cover fallback-image'
-                        img.style.opacity = activeTheme === theme ? '1' : '0'
-                        parent.appendChild(img)
-                      }
-                    }}
-                  >
-                    {sources.map((s, i) => (
-                      <source key={i} src={s.src} type={s.type} />
-                    ))}
-                  </motion.video>
+                  <>
+                    <motion.video
+                      key={theme}
+                      ref={(el) => {
+                        if (el) videoRefs.current[theme] = el
+                      }}
+                      data-theme={theme}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: activeTheme === theme && !isBlocked ? 1 : 0 }}
+                      transition={{ 
+                        duration: isMobile ? 0.15 : 0.2, 
+                        ease: [0.4, 0, 0.2, 1]
+                      }}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      preload={isMobile ? 'metadata' : 'auto'}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      style={{ 
+                        opacity: activeTheme === theme && !isBlocked ? 1 : 0, 
+                        pointerEvents: activeTheme === theme ? 'auto' : 'none',
+                        willChange: activeTheme === theme ? 'opacity' : 'auto',
+                        transform: 'translateZ(0)',
+                        backfaceVisibility: 'hidden'
+                      }}
+                      onCanPlay={(e) => {
+                        // Ensure video plays when it can play
+                        const video = e.target as HTMLVideoElement
+                        if (activeTheme === theme) {
+                          video.play().then(() => {
+                            setAutoplayBlocked(prev => ({ ...prev, [theme]: false }))
+                          }).catch(() => {
+                            // Autoplay blocked - will show fallback image
+                            setAutoplayBlocked(prev => ({ ...prev, [theme]: true }))
+                          })
+                        }
+                      }}
+                      onLoadedData={(e) => {
+                        // Ensure video plays when loaded
+                        const video = e.target as HTMLVideoElement
+                        if (activeTheme === theme) {
+                          video.play().then(() => {
+                            setAutoplayBlocked(prev => ({ ...prev, [theme]: false }))
+                          }).catch(() => {
+                            setAutoplayBlocked(prev => ({ ...prev, [theme]: true }))
+                          })
+                        }
+                      }}
+                      onPlay={() => {
+                        // Video started playing successfully
+                        setAutoplayBlocked(prev => ({ ...prev, [theme]: false }))
+                      }}
+                      onError={(e) => {
+                        // Fallback to image if video fails to load
+                        const target = e.target as HTMLVideoElement
+                        setAutoplayBlocked(prev => ({ ...prev, [theme]: true }))
+                        const parent = target.parentElement
+                        if (parent && !parent.querySelector('img.fallback-image')) {
+                          target.style.display = 'none'
+                          const img = document.createElement('img')
+                          img.src = theme === 'events' ? '/photos/events/IMG_6482.JPG' : theme === 'bar' ? '/photos/bar/IMG_4988.JPG' : imageSources[theme]
+                          img.className = 'absolute inset-0 w-full h-full object-cover fallback-image'
+                          img.style.opacity = activeTheme === theme ? '1' : '0'
+                          parent.appendChild(img)
+                        }
+                      }}
+                    >
+                      {sources.map((s, i) => (
+                        <source key={i} src={s.src} type={s.type} />
+                      ))}
+                    </motion.video>
+                    {/* Fallback image when autoplay is blocked or video fails */}
+                    {isBlocked && activeTheme === theme && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute inset-0 w-full h-full"
+                      >
+                        <Image
+                          src={theme === 'events' ? '/photos/events/IMG_6482.JPG' : theme === 'bar' ? '/photos/bar/IMG_4988.JPG' : imageSources[theme]}
+                          alt={theme}
+                          fill
+                          className="object-cover object-center"
+                          quality={90}
+                          priority
+                        />
+                      </motion.div>
+                    )}
+                  </>
                 )
               })
             )}
