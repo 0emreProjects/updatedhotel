@@ -7,6 +7,7 @@ import Footer from '@/components/Footer'
 import RoomModal from '@/components/RoomModal'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
+import { FaBaby } from 'react-icons/fa'
 
 interface Room {
   id: number
@@ -45,7 +46,7 @@ const rooms: Room[] = [
       'Shower/tub combination',
     ],
     size: '200 sq ft',
-    sleeps: 3,
+    sleeps: 2,
     bedType: '1 Double Bed',
     isLakeside: true,
   },
@@ -73,7 +74,7 @@ const rooms: Room[] = [
       'Shower/tub combination',
     ],
     size: '200 sq ft',
-    sleeps: 3,
+    sleeps: 2,
     bedType: '1 Queen Bed',
     isLakeside: false,
   },
@@ -101,7 +102,7 @@ const rooms: Room[] = [
       'Shower/tub combination',
     ],
     size: '200 sq ft',
-    sleeps: 3,
+    sleeps: 2,
     bedType: '1 Queen Bed',
     isLakeside: true,
   },
@@ -129,7 +130,7 @@ const rooms: Room[] = [
       'Shower/tub combination',
     ],
     size: '200 sq ft',
-    sleeps: 3,
+    sleeps: 2,
     bedType: '1 King Bed',
     isLakeside: false,
   },
@@ -159,7 +160,7 @@ const rooms: Room[] = [
       'Shower/tub combination',
     ],
     size: '200 sq ft',
-    sleeps: 3,
+    sleeps: 2,
     bedType: '1 King Bed',
     isLakeside: true,
   },
@@ -294,8 +295,19 @@ export default function RoomsPage() {
                   <h3 className="text-xl font-elegant font-semibold text-lakeside-blue mb-2">
                     {room.title}
                   </h3>
-                  <p className="text-gray-600 text-sm mb-4">
-                    {room.size} • Sleeps {room.sleeps} • {room.bedType}
+                  <p className="text-gray-600 text-sm mb-4 flex items-center gap-1.5">
+                    <span>{room.size}</span>
+                    <span>•</span>
+                    {room.sleeps === 2 ? (
+                      <span className="flex items-center gap-1.5">
+                        <span>2 people</span>
+                        <FaBaby size={12} className="text-blue-500" />
+                      </span>
+                    ) : (
+                      <span>Sleeps {room.sleeps}</span>
+                    )}
+                    <span>•</span>
+                    <span>{room.bedType}</span>
                   </p>
                   <button className="w-full bg-lakeside-blue text-white py-2 rounded-lg hover:bg-blue-700 transition-fast">
                     View Details

@@ -4,6 +4,7 @@ import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { HiX, HiChevronLeft, HiChevronRight } from 'react-icons/hi'
 import { HiHome, HiUsers } from 'react-icons/hi'
+import { FaBaby } from 'react-icons/fa'
 import Image from 'next/image'
 import CrossfadeImage from './CrossfadeImage'
 import dynamic from 'next/dynamic'
@@ -201,7 +202,14 @@ export default function RoomModal({ room, isOpen, onClose }: RoomModalProps) {
                     <HiUsers size={20} className="text-blue-600" />
                     <div>
                       <p className="text-sm text-gray-600">Sleeps</p>
-                      <p className="font-semibold text-gray-800">{room.sleeps} Guests</p>
+                      {room.sleeps === 2 ? (
+                        <p className="font-semibold text-gray-800 flex items-center gap-1.5">
+                          <span>2 people</span>
+                          <FaBaby size={16} className="text-blue-500" />
+                        </p>
+                      ) : (
+                        <p className="font-semibold text-gray-800">{room.sleeps} Guests</p>
+                      )}
                     </div>
                   </div>
                   <div className="col-span-2">

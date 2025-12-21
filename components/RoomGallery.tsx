@@ -6,6 +6,7 @@ import Image from 'next/image'
 import CrossfadeImage from './CrossfadeImage'
 import { HiChevronLeft, HiChevronRight } from 'react-icons/hi'
 import { HiHome, HiUsers } from 'react-icons/hi'
+import { FaBaby } from 'react-icons/fa'
 import RoomModal from './RoomModal'
 import preloadAndDecode from './imagePreloader'
 
@@ -29,7 +30,7 @@ const rooms: Room[] = [
     subtitle: 'Full Lakeside',
     description: 'Individually furnished room with stunning lake views',
     size: '200 sq ft',
-    sleeps: 3,
+    sleeps: 2,
     bedType: '1 Double Bed',
     highlights: [
       'Individually furnished',
@@ -56,7 +57,7 @@ const rooms: Room[] = [
     subtitle: 'Queen Non-Lakeside',
     description: 'Comfortable queen room with modern amenities',
     size: '200 sq ft',
-    sleeps: 3,
+    sleeps: 2,
     bedType: '1 Queen Bed',
     highlights: [
       'Individually furnished',
@@ -84,7 +85,7 @@ const rooms: Room[] = [
     subtitle: 'Queen Lakeside',
     description: 'Beautiful queen room with panoramic lake views',
     size: '200 sq ft',
-    sleeps: 3,
+    sleeps: 2,
     bedType: '1 Queen Bed',
     highlights: [
       'Individually furnished',
@@ -113,7 +114,7 @@ const rooms: Room[] = [
     subtitle: 'King Non-Lakeside',
     description: 'Spacious king room with premium amenities',
     size: '200 sq ft',
-    sleeps: 3,
+    sleeps: 2,
     bedType: '1 King Bed',
     highlights: [
       'Individually furnished',
@@ -141,7 +142,7 @@ const rooms: Room[] = [
     subtitle: 'King Lakeside',
     description: 'Luxurious king room with stunning lake views',
     size: '200 sq ft',
-    sleeps: 3,
+    sleeps: 2,
     bedType: '1 King Bed',
     highlights: [
       'Individually furnished',
@@ -405,15 +406,25 @@ function RoomCard({ room, index, onOpenModal }: { room: Room; index: number; onO
           </div>
           <div className="flex items-center gap-1">
             <HiUsers size={16} />
-            <span>Sleeps {room.sleeps}</span>
+            {room.sleeps === 2 ? (
+              <span className="flex items-center gap-1.5">
+                <span>2 people</span>
+                <FaBaby size={14} className="text-blue-500" />
+              </span>
+            ) : (
+              <span>Sleeps {room.sleeps}</span>
+            )}
           </div>
         </div>
         <p className="text-gray-600 text-sm mb-4">{room.description}</p>
         <button
-          onClick={() => onOpenModal(room)}
-          className="w-full text-blue-600 font-semibold hover:text-blue-700 transition-colors text-sm py-2 border border-blue-200 rounded-lg hover:bg-blue-50"
+          // Disabled intentionally per request: make View Details non-working
+          disabled
+          aria-disabled="true"
+          className="w-full text-blue-600 font-semibold text-sm py-2 border border-blue-200 rounded-lg opacity-60 cursor-not-allowed"
+          aria-label="Coming soon!"
         >
-          View Details & Photos →
+          Coming soon!
         </button>
       </div>
     </motion.div>
