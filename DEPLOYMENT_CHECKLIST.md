@@ -48,12 +48,12 @@ RESEND_FROM_EMAIL=Lakeside Inn <noreply@yourdomain.com>
 - [ ] Verify your domain in Resend (or use `onboarding@resend.dev` for testing)
 - [ ] Add environment variables to hosting platform
 
-#### 2. Image Optimization (Optional but Recommended)
-Currently set to `unoptimized: true` in `next.config.js`
+#### 2. Image Optimization (Enabled)
+Image optimization is enabled in `next.config.js` to serve responsive, efficient images.
 
-**Action Required:**
-- [ ] Consider removing `unoptimized: true` for better performance
-- [ ] Or keep it if you prefer full control over images
+**Notes / Action Items:**
+- [x] `next.config.js` updated to enable optimization and modern formats (`webp`, `avif`).
+- [ ] For third-party image hosts, add domains to `images.domains` in `next.config.js`.
 
 #### 3. Video Format (Optional)
 Videos are in `.MOV` format. Code tries `.mp4` first, falls back to `.MOV`.
@@ -163,7 +163,7 @@ Follow platform-specific Next.js deployment guides. Ensure:
 
 1. **Email Service**: Requires Resend API key to send emails. Without it, form will show success but won't actually send (fallback mode).
 
-2. **Image Optimization**: Currently disabled (`unoptimized: true`). Can be enabled for better performance.
+2. **Image Optimization**: Enabled in `next.config.js`. Mobile now receives fewer/higher-compressed images to speed up LCP.
 
 3. **Videos**: Using `.MOV` format with `.mp4` fallback. Converting to `.mp4` recommended.
 
@@ -180,6 +180,8 @@ If you encounter issues:
 ---
 
 **Status**: ✅ Ready for deployment (after setting up Resend API key)
+
+**Mobile Optimizations Applied**: The mobile experience has been tuned to load fewer images, use lower-quality/responsive images, and avoid forcing preloads that slow initial paint. This should significantly improve opening time on mobile.
 
 **Last Updated**: Current date
 

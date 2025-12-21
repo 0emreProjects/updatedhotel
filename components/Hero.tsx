@@ -192,9 +192,10 @@ export default function Hero() {
                 alt="Lakeside Inn"
                 fill
                 className="object-cover object-center"
-                priority
+                // don't force preload on mobile; use lower quality to speed up LCP
+                priority={false}
                 loading="eager"
-                quality={60}
+                quality={40}
                 sizes="100vw"
               />
             ) : (
@@ -220,13 +221,13 @@ export default function Hero() {
                       }}
                     >
                       <Image
-                        src={videoSources.rooms}
-                        alt="Rooms"
-                        fill
-                        className="object-cover object-center"
-                        quality={isMobile ? 75 : 90}
-                        loading={isMobile ? 'lazy' : 'eager'}
-                      />
+                          src={videoSources.rooms}
+                          alt="Rooms"
+                          fill
+                          className="object-cover object-center"
+                          quality={isMobile ? 75 : 90}
+                          loading={isMobile ? 'lazy' : 'eager'}
+                        />
                     </motion.div>
                   )
                 }

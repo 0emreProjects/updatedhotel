@@ -13,10 +13,22 @@ interface Props {
 
 export default function MobileGallery({ images, initialIndex = 0, onIndexChange }: Props) {
   const [index, setIndex] = useState(initialIndex)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Limit image set and adjust behavior on mobile for performance
+  const effectiveImages = isMobile ? images.slice(0, 5) : images
 
   useEffect(() => {
     setIndex(initialIndex)
   }, [initialIndex])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   useEffect(() => {
     if (onIndexChange) onIndexChange(index)
@@ -25,10 +37,11 @@ export default function MobileGallery({ images, initialIndex = 0, onIndexChange 
   // Preload neighbors for snappy next/prev
   useEffect(() => {
     try {
-      const nextIdx = (index + 1) % images.length
-      const prevIdx = (index - 1 + images.length) % images.length
-      preloadAndDecode(images[nextIdx])
-      preloadAndDecode(images[prevIdx])
+      const nextIdx = (index + 1) % effectiveImages.length
+      const prevIdx = (index - 1 + effectiveImages.length) % effectiveImages.length
+      // Preload neighbors so next/prev swaps are instant on both mobile and desktop
+      preloadAndDecode(effectiveImages[nextIdx]).catch(() => {})
+      preloadAndDecode(effectiveImages[prevIdx]).catch(() => {})
     } catch (e) {}
   }, [index, images])
 
@@ -39,13 +52,14 @@ export default function MobileGallery({ images, initialIndex = 0, onIndexChange 
     <div className="w-full">
       <div className="relative w-full h-[220px] sm:h-[320px] bg-gray-100 overflow-hidden rounded-lg">
         <Image
-          src={images[index]}
+          src={effectiveImages[index]}
           alt={`Photo ${index + 1}`}
           fill
           className="object-cover"
           sizes="(max-width: 640px) 100vw, 50vw"
-          priority
-          quality={60}
+          priority={!isMobile}
+          loading={isMobile ? 'lazy' : 'eager'}
+          quality={isMobile ? 45 : 60}
         />
 
         {/* Touch-friendly arrow areas */}
@@ -87,13 +101,13 @@ export default function MobileGallery({ images, initialIndex = 0, onIndexChange 
       {/* Horizontal thumbnails - low quality for mobile and lazy loaded */}
       <div className="mt-3 px-1 overflow-x-auto">
         <div className="flex items-center gap-2">
-          {images.map((img, i) => (
+          {effectiveImages.map((img, i) => (
             <button
               key={i}
               onClick={() => setIndex(i)}
               className={`flex-shrink-0 rounded-md overflow-hidden w-20 h-14 ${i === index ? 'ring-2 ring-blue-500' : ''}`}
             >
-              <Image src={img} alt={`thumb-${i}`} width={80} height={56} className="object-cover" sizes="80px" loading={i <= index + 2 ? 'eager' : 'lazy'} quality={40} />
+              <Image src={img} alt={`thumb-${i}`} width={80} height={56} className="object-cover" sizes="80px" loading={i <= index + 1 ? 'eager' : 'lazy'} quality={30} />
             </button>
           ))}
         </div>

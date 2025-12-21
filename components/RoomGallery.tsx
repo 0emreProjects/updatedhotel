@@ -258,12 +258,10 @@ function RoomCard({ room, index, onOpenModal }: { room: Room; index: number; onO
   const nextImage = () => {
     setCurrentImageIndex((prev) => {
       const next = (prev + 1) % room.images.length
-      // Only preload on desktop, mobile will load on demand
-      if (typeof window !== 'undefined' && window.innerWidth >= 768) {
-        try {
-          preloadAndDecode(room.images[(next + 1) % room.images.length]).catch(() => {})
-        } catch (e) {}
-      }
+      // Preload the following image to make next swaps immediate on both mobile and desktop
+      try {
+        preloadAndDecode(room.images[(next + 1) % room.images.length]).catch(() => {})
+      } catch (e) {}
       return next
     })
   }
@@ -271,12 +269,10 @@ function RoomCard({ room, index, onOpenModal }: { room: Room; index: number; onO
   const prevImage = () => {
     setCurrentImageIndex((prev) => {
       const next = (prev - 1 + room.images.length) % room.images.length
-      // Only preload on desktop, mobile will load on demand
-      if (typeof window !== 'undefined' && window.innerWidth >= 768) {
-        try {
-          preloadAndDecode(room.images[(next - 1 + room.images.length) % room.images.length]).catch(() => {})
-        } catch (e) {}
-      }
+      // Preload previous image for snappy previous navigation on mobile and desktop
+      try {
+        preloadAndDecode(room.images[(next - 1 + room.images.length) % room.images.length]).catch(() => {})
+      } catch (e) {}
       return next
     })
   }
@@ -425,21 +421,17 @@ function RoomCard({ room, index, onOpenModal }: { room: Room; index: number; onO
 }
 
 export default function RoomGallery() {
-  // Preload and decode room images on mount - but skip on mobile for performance
+  // Preload and decode room images on mount.
+  // On mobile we preload only the first image per room to keep initial load light;
+  // on desktop preload all room images to improve hover/preview UX.
   useEffect(() => {
     if (typeof window === 'undefined') return
     const isMobile = window.innerWidth < 768
-    // Don't preload all images on mobile - too slow
-    if (isMobile) return
-    
     try {
-      // Only preload first image of each room on mobile, all on desktop
       rooms.forEach((room) => {
         if (isMobile) {
-          // Just preload first image
           preloadAndDecode(room.images[0]).catch(() => {})
         } else {
-          // Preload all on desktop
           room.images.forEach((src) => {
             preloadAndDecode(src).catch(() => {})
           })
